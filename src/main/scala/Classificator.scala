@@ -18,10 +18,10 @@ object Classificator {
     // $example on$
     // Load and parse the data file.
 
-    val documents: RDD[Seq[String]] = sc.textFile("out.txt")
+    val documents: RDD[Seq[String]] = sc.textFile("preprocessed_train.txt")
       .map(_.split(",")(1).split(" ").toSeq)
 
-    val labels: RDD[Int] = sc.textFile("out.txt").map(_.split(",")(0).toInt)
+    val labels: RDD[Int] = sc.textFile("preprocessed_train.txt").map(_.split(",")(0).toInt)
 
     val hashingTF = new HashingTF()
     val tf: RDD[linalg.Vector] = hashingTF.transform(documents)
