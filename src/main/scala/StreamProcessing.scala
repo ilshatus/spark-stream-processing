@@ -22,26 +22,29 @@ object StreamProcessing {
     ), ssc, StorageLevel.MEMORY_ONLY, pollingPeriodInSeconds = durationSeconds)
     stream.foreachRDD(rdd => {
       val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
-      import spark.sqlContext.implicits._
       val entries = rdd.collect()
       entries.foreach((entry: RSSEntry) => {
         val description = entry
           .description
           .value
-          .split("(<a href[^>]*>)|(<\\/a>)")
+          .split("(<[^>]*>)|(((www\\.)|(https?:\\/\\/))[^ ]+)")
           .mkString(" ")
           .toLowerCase()
-          .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~0-9\\\\])|(\\n)|(\\r))+")
+          .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~\\\\])|(\\n)|(\\r))+")
           .filter(value => value.matches("[a-z]+"))
           .mkString(" ")
-        println(description)
+        if (!description.isEmpty)
+          println(Tweet(entry.links.head.href, description))
       })
     })
 
-    // run forever
     ssc.start()
     ssc.awaitTermination()
   }
+}
+
+case class Tweet(link: String, content: String) {
+  override def toString: String = "Tweet(".concat(link).concat(", \"").concat(content).concat("\")")
 }
 
 
