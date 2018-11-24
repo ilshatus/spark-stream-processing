@@ -15,7 +15,7 @@ object StreamProcessing {
     val log = Logger.getLogger("StreamProcessing")
 
     log.info("Args parsed.")
-    val conf = new SparkConf()
+    val conf = new SparkConf().setMaster("local")
       .setAppName("StreamProcessing")
     val sc = new SparkContext(conf)
     log.info("Context ready.")

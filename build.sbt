@@ -1,3 +1,5 @@
+
+
 name := "spark-recommendation"
 
 version := "0.1"
@@ -5,12 +7,12 @@ version := "0.1"
 scalaVersion := "2.11.8"
 val sparkVersion = "2.3.2"
 
+
 resolvers ++= Seq(
   "bintray-spark-packages" at "https://dl.bintray.com/spark-packages/maven/",
   "apache-snapshots" at "http://repository.apache.org/snapshots/",
   "sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 )
-//addSbtPlugin("org.spark-packages" % "sbt-spark-package" % "0.2.6")
 
 
 libraryDependencies ++= Seq(
