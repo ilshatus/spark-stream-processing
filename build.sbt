@@ -16,6 +16,7 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-mllib" % sparkVersion,
+  "com.github.catalystcode" %% "streaming-rss-html" % "1.0.2",
   "com.github.fommil.netlib" % "all" % "1.1.2" pomOnly()
 )
 

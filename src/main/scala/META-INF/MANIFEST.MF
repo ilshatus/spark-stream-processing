@@ -72,5 +72,5 @@ Class-Path: hadoop-mapreduce-client-core-2.6.5.jar netlib-native_ref-w
  let-api-3.1.0.jar hadoop-annotations-2.6.5.jar janino-3.0.8.jar orc-m
  apreduce-1.4.4-nohive.jar jline-0.9.94.jar opencsv-2.3.jar scala-xml_
  2.11-1.0.4.jar xmlenc-0.52.jar netty-all-4.1.17.Final.jar
-Main-Class: MovieLensALS
+Main-Class: StreamProcessing
 
