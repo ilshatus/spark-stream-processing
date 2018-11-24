@@ -1,9 +1,6 @@
-import org.apache.log4j.Logger
-import org.apache.log4j.Level
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
-import com.github.catalystcode.fortis.spark.streaming.rss.RSSInputDStream
-import com.github.catalystcode.fortis.spark.streaming.html.HTMLInputDStream
+import com.github.catalystcode.fortis.spark.streaming.rss.{RSSEntry, RSSInputDStream}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.{Seconds, StreamingContext}
@@ -11,7 +8,7 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 object StreamProcessing {
 
   def main(args: Array[String]) {
-    System.setProperty("hadoop.home.dir", "C:\\Users\\arsee\\Desktop\\hadoop")
+    System.setProperty("hadoop.home.dir", "C:\\Users\\Ilshat\\hadoop")
     val durationSeconds = 10
     val conf = new SparkConf().setAppName("RSS Spark Application").setIfMissing("spark.master", "local[*]")
     val sc = new SparkContext(conf)
@@ -26,7 +23,26 @@ object StreamProcessing {
     stream.foreachRDD(rdd=>{
       val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
       import spark.sqlContext.implicits._
-      rdd.toDS().show()
+      val entries = rdd.collect()
+
+      entries.foreach((entry: RSSEntry) => {
+        val description = entry
+          .description
+          .value
+          .split("(<a href[^>]*>)|(<\\/a>)")
+          .mkString(" ")
+          .toLowerCase()
+          .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~0-9\\\\])|(\\n)|(\\r))+")
+          .filter(value => {
+            for (i <- 0 to value.length) {
+              if (value.charAt(i) > 'z' || value.charAt(i) < 'a')
+                return false
+            }
+            return true
+          })
+          .mkString(" ")
+        println(description)
+      })
     })
 
     // run forever
