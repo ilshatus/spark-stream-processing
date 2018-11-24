@@ -20,11 +20,10 @@ object StreamProcessing {
     val stream = new RSSInputDStream(urls, Map[String, String](
       "User-Agent" -> "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
     ), ssc, StorageLevel.MEMORY_ONLY, pollingPeriodInSeconds = durationSeconds)
-    stream.foreachRDD(rdd=>{
+    stream.foreachRDD(rdd => {
       val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
       import spark.sqlContext.implicits._
       val entries = rdd.collect()
-
       entries.foreach((entry: RSSEntry) => {
         val description = entry
           .description
@@ -33,13 +32,7 @@ object StreamProcessing {
           .mkString(" ")
           .toLowerCase()
           .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~0-9\\\\])|(\\n)|(\\r))+")
-          .filter(value => {
-            for (i <- 0 to value.length) {
-              if (value.charAt(i) > 'z' || value.charAt(i) < 'a')
-                return false
-            }
-            return true
-          })
+          .filter(value => value.matches("[a-z]+"))
           .mkString(" ")
         println(description)
       })
