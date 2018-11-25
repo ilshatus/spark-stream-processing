@@ -1,65 +1,102 @@
-import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
-import org.apache.spark.mllib.feature.{HashingTF, IDF}
-import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.mllib.linalg.Vector
-import org.apache.spark.mllib.optimization.SquaredL2Updater
-import org.apache.spark.rdd.RDD
+import org.apache.spark.ml.{Pipeline, PipelineModel}
+import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.ml.classification.LinearSVC
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 object Classificator {
+  private val APP_NAME = "Classificator"
+  private val MASTER = "local"
 
+  private val INPUT_FILE_PATH = "preprocessed_train.csv"
+  private val LABEL_COLUMN = "label"
+  private val TWEET_TEXT_COLUMN = "text"
+
+  private val TF_COLUMN = "tf"
+  private val IDF_COLUMN = "idf"
+  private val WORDS_COLUMN = "words"
+
+  private val MODEL_FILE_NAME = "/tmp/tweets-classification-model"
 
   def main(args: Array[String]): Unit = {
-    val conf = new SparkConf().setAppName("Classificator").setMaster("local")
+    val conf = new SparkConf().setAppName(APP_NAME).setMaster(MASTER)
     val sc = new SparkContext(conf)
+    // $example on$F
+    // Load and parse the data file.
+    val spark: SparkSession = SparkSession.builder()
+      .appName(APP_NAME)
+      .master(MASTER)
+      .getOrCreate()
 
-    val documents: RDD[Seq[String]] = sc.textFile("preprocessed_train.txt")
-      .map(_.split(",")(1).split(" ").toSeq)
+    val data = spark.read
+      .format("csv")
+      .option("header", "true")
+      .option("mode", "DROPMALFORMED")
+      .schema(
+        StructType(
+          Array(
+            StructField(LABEL_COLUMN, DoubleType, nullable = false),
+            StructField(TWEET_TEXT_COLUMN, StringType, nullable = false)
+          )
+        )
+      )
+      .load(INPUT_FILE_PATH)
+      //.limit(100)
+      .cache()
 
-    val labels: RDD[Int] = sc.textFile("preprocessed_train.txt").map(_.split(",")(0).toInt)
-
-    val hashingTF = new HashingTF()
-    val tf: RDD[Vector] = hashingTF.transform(documents)
-
-    tf.cache()
-
-    val idf = new IDF().fit(tf)
-    val tfidf: RDD[Vector] = idf.transform(tf)
-
-    val data = tfidf.zip(labels).map(t => LabeledPoint(t._2.toDouble, t._1))
-
+    println(s"Count: ${data.count()}")
     // Training test split
     val Array(training, test) = data.randomSplit(Array(0.7, 0.3), seed = 11L)
 
-    val numIterations = 300
-    val regParam = 0.0001
 
-    val svmModel = new SVMWithSGD()
-    svmModel.optimizer
-      .setNumIterations(numIterations)
-      .setUpdater(new SquaredL2Updater)
-      .setRegParam(regParam)
+    val tokenizer = new Tokenizer()
+      .setInputCol(TWEET_TEXT_COLUMN)
+      .setOutputCol(WORDS_COLUMN)
 
-    // Run training algorithm to build the model
-    val model = svmModel.run(training)
+    val hashingTF = new HashingTF()
+      .setInputCol(WORDS_COLUMN)
+      .setOutputCol(TF_COLUMN)
 
-    // Uncomment only when need to know accuracy
-    // // Clear the default threshold.
-    model.clearThreshold()
+    val idf = new IDF()
+      .setInputCol(TF_COLUMN)
+      .setOutputCol(IDF_COLUMN)
 
-    // Compute raw scores on the test set.
-    val scoreAndLabels = test.map { point =>
-      val score = model.predict(point.features)
-      (score, point.label)
-    }
-    // Get evaluation metrics.
-    val metrics = new BinaryClassificationMetrics(scoreAndLabels)
-    val auROC = metrics.areaUnderROC()
+    val svcModel = new LinearSVC()
+      .setFeaturesCol(IDF_COLUMN)
+      .setLabelCol(LABEL_COLUMN)
+      .setRegParam(0.0001)
+      .setMaxIter(300)
+    //.setUpdater(new SquaredL2Updater)
 
-    println("Accuracy = " + auROC)
+    val pipeline = new Pipeline()
+      .setStages(Array(tokenizer, hashingTF, idf, svcModel))
+
+    // Fit the pipeline to training data.
+    val model = pipeline.fit(training)
+
+    testModel(model, test)
+
+    // Save the fitted pipeline
+    model.write.overwrite().save(MODEL_FILE_NAME)
+
+    // Load the model
+    val sameModel = PipelineModel.load(MODEL_FILE_NAME)
+
+    testModel(sameModel, test)
 
     sc.stop()
   }
 
+  private def testModel(model: PipelineModel, testData: Dataset[Row]): Unit = {
+    // Make predictions on test documents.
+    val testPredictions = model.transform(testData)
+
+    val correctCount = testPredictions.select("prediction", LABEL_COLUMN)
+      .collect()
+      .count { case Row(prediction: Double, label: Double) => prediction.equals(label) }
+
+    var accuracy = 1.0 * correctCount / testData.count()
+    print(s"Accuracy: $accuracy")
+  }
 }
