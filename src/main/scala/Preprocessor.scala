@@ -1,20 +1,18 @@
-import java.util
 import scala.io.Source
 
-import scala.collection.mutable
-import scala.math.{max, min}
+import scala.math.min
 
 class Preprocessor(path: String) {
   val defaultPath = "dictionary.txt"
-  var dictionary: scala.collection.mutable.HashMap[String, Boolean] = null
+  var dictionary: scala.collection.mutable.HashMap[String, Boolean] = _
 
   def this() {
     this("dictionary.txt")
     this.dictionary = scala.collection.mutable.HashMap[String, Boolean]()
-    for (line <- Source.fromFile(path).getLines) {
-      this.dictionary.put(line, true)
-    }
-
+    Source
+      .fromFile(path)
+      .getLines
+      .foreach(x => this.dictionary.put(x, true))
   }
 
   //https://gist.github.com/tixxit/1246894/e79fa9fbeda695b9e8a6a5d858b61ec42c7a367d
@@ -39,6 +37,7 @@ class Preprocessor(path: String) {
       closestWord
     }
   }
+
   def removeRedundantLetters(word: String): String ={
     val regex ="(\\b\\w*?)(\\w)\\2{2,}(\\w*)"
     word.replaceAll(regex,"$1$2$2$3")
@@ -50,7 +49,7 @@ class Preprocessor(path: String) {
 }
 
 object Preprocessor {
-  private var _instance: Preprocessor = null
+  private var _instance: Preprocessor = _
 
   def instance(): Preprocessor = {
     if (_instance == null)

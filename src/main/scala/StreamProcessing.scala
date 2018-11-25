@@ -7,9 +7,6 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 object StreamProcessing {
 
-  def mainTest(args:Array[String]): Unit ={
-    print(Preprocessor.instance().process("AWSsome"))
-  }
   def main(args: Array[String]) {
     System.setProperty("hadoop.home.dir", "C:\\Users\\Ilshat\\hadoop")
     val durationSeconds = 10
@@ -22,29 +19,30 @@ object StreamProcessing {
     val urls = urlCSV.split(",")
     val stream = new RSSInputDStream(urls, Map[String, String](
       "User-Agent" -> "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
-    ), ssc, StorageLevel.MEMORY_ONLY, pollingPeriodInSeconds = durationSeconds)
+    ), ssc, StorageLevel.MEMORY_ONLY, pollingPeriodInSeconds = durationSeconds, readTimeout = 5000)
     stream.foreachRDD(rdd => {
       val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
-      import spark.sqlContext.implicits._
-      val entries = rdd.collect()
-      entries.foreach((entry: RSSEntry) => {
+      rdd.foreach((entry: RSSEntry) => {
         val description = entry
           .description
           .value
-          .split("(<a href[^>]*>)|(<\\/a>)")
-          .mkString(" ")
-          .toLowerCase()
-          .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~0-9\\\\])|(\\n)|(\\r))+")
+          .toLowerCase
+          .split("(<[^>]*>)")
+          .mkString("")
+          .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~\\\\])|(\\n)|(\\r)|(((www\\.)|(https?:\\/\\/))[^ ]+))+")
           .filter(value => value.matches("[a-z]+"))
+          .map(value => Preprocessor.instance().process(value))
           .mkString(" ")
-        println(description)
+        if (!description.isEmpty)
+          println(Tweet(entry.links.head.href, description))
       })
     })
 
-    // run forever
     ssc.start()
     ssc.awaitTermination()
   }
 }
 
-
+case class Tweet(link: String, content: String) {
+  override def toString: String = "Tweet(".concat(link).concat(", \"").concat(content).concat("\")")
+}
