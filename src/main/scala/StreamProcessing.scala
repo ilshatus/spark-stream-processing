@@ -7,6 +7,9 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 object StreamProcessing {
 
+  def mainTest(args:Array[String]): Unit ={
+    print(Preprocessor.instance().process("AWSsome"))
+  }
   def main(args: Array[String]) {
     System.setProperty("hadoop.home.dir", "C:\\Users\\Ilshat\\hadoop")
     val durationSeconds = 10
