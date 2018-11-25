@@ -18,7 +18,7 @@ class Preprocessor(path: String) {
   }
 
   //https://gist.github.com/tixxit/1246894/e79fa9fbeda695b9e8a6a5d858b61ec42c7a367d
-  def levenshteinDistance[A](a: Iterable[A], b: Iterable[A]) =
+  def levenshteinDistance[A](a: Iterable[A], b: Iterable[A]): Int =
     ((0 to b.size).toList /: a) ((prev, x) =>
       (prev zip prev.tail zip b).scanLeft(prev.head + 1) {
         case (h, ((d, v), y)) => min(min(h + 1, v + 1), d + (if (x == y) 0 else 1))
@@ -41,11 +41,11 @@ class Preprocessor(path: String) {
   }
   def removeRedundantLetters(word: String): String ={
     val regex ="(\\b\\w*?)(\\w)\\2{2,}(\\w*)"
-    return word.replaceAll(regex,"$1$2$2$3")
+    word.replaceAll(regex,"$1$2$2$3")
   }
 
   def process(word: String): String = {
-    return closestWordFromDictionary(removeRedundantLetters(word.toLowerCase()))
+    closestWordFromDictionary(removeRedundantLetters(word.toLowerCase()))
   }
 }
 
