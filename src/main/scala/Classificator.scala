@@ -1,7 +1,8 @@
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.ml.classification.LinearSVC
+import org.apache.spark.ml.classification.{LinearSVC, LogisticRegression}
+import org.apache.spark.mllib.classification.SVMWithSGD
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
@@ -22,13 +23,34 @@ object Classificator {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName(APP_NAME).setMaster(MASTER)
     val sc = new SparkContext(conf)
-    // $example on$F
-    // Load and parse the data file.
     val spark: SparkSession = SparkSession.builder()
       .appName(APP_NAME)
       .master(MASTER)
       .getOrCreate()
 
+    // Prepare model
+    val tokenizer = new Tokenizer()
+      .setInputCol(TWEET_TEXT_COLUMN)
+      .setOutputCol(WORDS_COLUMN)
+
+    val hashingTF = new HashingTF()
+      .setInputCol(WORDS_COLUMN)
+      .setOutputCol(TF_COLUMN)
+
+    val idf = new IDF()
+      .setInputCol(TF_COLUMN)
+      .setOutputCol(IDF_COLUMN)
+
+    val svcModel = new LinearSVC()
+      .setFeaturesCol(IDF_COLUMN)
+      .setLabelCol(LABEL_COLUMN)
+      .setRegParam(0.01)
+      .setMaxIter(300)
+
+    val pipeline = new Pipeline()
+      .setStages(Array(tokenizer, hashingTF, idf, svcModel))
+
+    // Load data
     val data = spark.read
       .format("csv")
       .option("header", "true")
@@ -45,32 +67,8 @@ object Classificator {
       //.limit(100)
       .cache()
 
-    println(s"Count: ${data.count()}")
-    // Training test split
     val Array(training, test) = data.randomSplit(Array(0.7, 0.3), seed = 11L)
 
-
-    val tokenizer = new Tokenizer()
-      .setInputCol(TWEET_TEXT_COLUMN)
-      .setOutputCol(WORDS_COLUMN)
-
-    val hashingTF = new HashingTF()
-      .setInputCol(WORDS_COLUMN)
-      .setOutputCol(TF_COLUMN)
-
-    val idf = new IDF()
-      .setInputCol(TF_COLUMN)
-      .setOutputCol(IDF_COLUMN)
-
-    val svcModel = new LinearSVC()
-      .setFeaturesCol(IDF_COLUMN)
-      .setLabelCol(LABEL_COLUMN)
-      .setRegParam(0.0001)
-      .setMaxIter(300)
-    //.setUpdater(new SquaredL2Updater)
-
-    val pipeline = new Pipeline()
-      .setStages(Array(tokenizer, hashingTF, idf, svcModel))
 
     // Fit the pipeline to training data.
     val model = pipeline.fit(training)
@@ -79,13 +77,10 @@ object Classificator {
 
     // Save the fitted pipeline
     model.write.overwrite().save(MODEL_FILE_NAME)
-
     // Load the model
     val sameModel = PipelineModel.load(MODEL_FILE_NAME)
 
     testModel(sameModel, test)
-
-    sc.stop()
   }
 
   private def testModel(model: PipelineModel, testData: Dataset[Row]): Unit = {
