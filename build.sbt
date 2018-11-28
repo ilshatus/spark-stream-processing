@@ -1,9 +1,8 @@
 name := "Stream processing"
 
-version := "0.1"
 
 scalaVersion := "2.11.7"
-val sparkVersion = "2.3.2"
+val sparkVersion = "2.1.0"
 
 
 resolvers ++= Seq(
@@ -24,3 +23,10 @@ artifactName := { (sv: ScalaVersion, module: ModuleID, artifact: Artifact) =>
   artifact.name + "_" + sv.binary + "-" + sparkVersion + "_" + module.revision + "." + artifact.extension
 }
 
+
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x => MergeStrategy.first
+}
+mainClass in (Compile, run) := Some("StreamProcessor")
+mainClass in (Compile, packageBin) := Some("SteamProcessor")
