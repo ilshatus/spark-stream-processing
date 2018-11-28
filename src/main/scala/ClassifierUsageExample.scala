@@ -14,7 +14,7 @@ object ClassifierUsageExample {
       .master(MASTER)
       .getOrCreate()
 
-    print(Classifier.predict("Some dumb shit text FUck you", spark, sc))
+    print(Classifier.predict("Some lovely text from twitter", spark, sc))
 
   }
 }
