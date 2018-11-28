@@ -1,10 +1,8 @@
-
-
-name := "spark-recommendation"
+name := "Stream processing"
 
 version := "0.1"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.7"
 val sparkVersion = "2.3.2"
 
 

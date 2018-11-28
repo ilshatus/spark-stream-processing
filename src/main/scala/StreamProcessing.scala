@@ -14,27 +14,25 @@ object StreamProcessing {
     val sc = new SparkContext(conf)
     val ssc = new StreamingContext(sc, Seconds(durationSeconds))
     sc.setLogLevel("ERROR")
-
     val urlCSV = args(0)
     val urls = urlCSV.split(",")
     val stream = new RSSInputDStream(urls, Map[String, String](
       "User-Agent" -> "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
     ), ssc, StorageLevel.MEMORY_ONLY, pollingPeriodInSeconds = durationSeconds, readTimeout = 5000)
-    stream.foreachRDD(rdd => {
+    stream.foreachRDD((rdd, time) => {
       val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
+      println(time)
       rdd.foreach((entry: RSSEntry) => {
         val description = entry
           .description
           .value
           .toLowerCase
-          .split("(<[^>]*>)")
-          .mkString("")
+          .replaceAll("(<[^>]*>)", "")
           .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~\\\\])|(\\n)|(\\r)|(((www\\.)|(https?:\\/\\/))[^ ]+))+")
           .filter(value => value.matches("[a-z]+"))
           .map(value => Preprocessor.instance().process(value))
           .mkString(" ")
-        if (!description.isEmpty)
-          println(Tweet(entry.links.head.href, description))
+        println(Tweet(entry.links.head.href, description))
       })
     })
 

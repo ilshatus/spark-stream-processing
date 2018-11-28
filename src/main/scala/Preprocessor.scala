@@ -3,7 +3,7 @@ import scala.io.Source
 import scala.math.min
 
 class Preprocessor(path: String) {
-  val defaultPath = "dictionary.txt"
+  val defaultPath = "hdfs://10.90.138.32:9000/user/team2/dictionary.txt"
   var dictionary: scala.collection.mutable.HashMap[String, Boolean] = _
 
   def this() {
