@@ -3,11 +3,11 @@ import scala.io.Source
 import scala.math.min
 
 class Preprocessor(path: String) {
-  val defaultPath = "hdfs://10.90.138.32:9000/user/team2/dictionary.txt"
+  val defaultPath = "hdfs:///user/glasgow//dictionary.txt"
   var dictionary: scala.collection.mutable.HashMap[String, Boolean] = _
 
   def this() {
-    this("dictionary.txt")
+    this("hdfs:///user/glasgow//dictionary.txt")
     this.dictionary = scala.collection.mutable.HashMap[String, Boolean]()
     Source
       .fromFile(path)
