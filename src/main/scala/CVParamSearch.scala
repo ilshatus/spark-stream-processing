@@ -4,7 +4,7 @@ import org.apache.spark.ml.classification.{LinearSVC, LinearSVCModel}
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 object CVParamSearch {
@@ -27,7 +27,6 @@ object CVParamSearch {
       .appName(APP_NAME)
       .master(MASTER)
       .getOrCreate()
-
 
     // Load data
     val data = spark.read

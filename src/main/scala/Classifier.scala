@@ -5,11 +5,10 @@ import org.apache.spark.ml.classification.{LinearSVC, LogisticRegression}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
-object Classificator {
 
-  object Classificator {
-    def getModel: PipelineModel = PipelineModel.load(MODEL_FILE_NAME)
-  }
+object Classifier {
+
+  lazy val model: PipelineModel = PipelineModel.load(MODEL_FILE_NAME)
 
   private val APP_NAME = "Classificator"
   private val MASTER = "local"
@@ -23,6 +22,7 @@ object Classificator {
   private val WORDS_COLUMN = "words"
 
   private val MODEL_FILE_NAME = "/tmp/tweets-classification-model"
+
 
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName(APP_NAME).setMaster(MASTER)
@@ -94,4 +94,13 @@ object Classificator {
     var accuracy = 1.0 * correctCount / testData.count()
     print(s"Accuracy: $accuracy")
   }
+
+  def predict(sample: String, spark: SparkSession, sc: SparkContext): Double = {
+    // without this 'toDF' does not work
+    import spark.implicits._
+
+    val df = sc.parallelize(Seq(sample)).toDF("text")
+    model.transform(df).select("prediction").collect().apply(0).get(0).asInstanceOf[Double]
+  }
+
 }
