@@ -69,16 +69,16 @@ object CVParamSearch {
       .setStages(Array(tokenizer, hashingTF, idf, svcModel))
 
     val paramGrid = new ParamGridBuilder()
-      //.addGrid(svcModel.regParam, Array(0.01))
+      .addGrid(svcModel.regParam, Array(0.004, 0.005,  0.007, 0.01))
       //.addGrid(svcModel.maxIter, Array(50, 100, 300))
-      .addGrid(svcModel.tol, Array(0, 0.0001, 0.001, 0.01, 0.1))
+      //.addGrid(svcModel.tol, Array(0, 0.0001, 0.001, 0.01, 0.1))
       .build()
 
     val cv = new CrossValidator()
       .setEstimator(pipeline)
       .setEvaluator(new BinaryClassificationEvaluator)
       .setEstimatorParamMaps(paramGrid)
-      .setNumFolds(3)
+      .setNumFolds(5)
 
     val cvModel = cv.fit(data)
 

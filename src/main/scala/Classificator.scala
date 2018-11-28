@@ -2,11 +2,15 @@ import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.ml.classification.{LinearSVC, LogisticRegression}
-import org.apache.spark.mllib.classification.SVMWithSGD
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 object Classificator {
+
+  object Classificator {
+    def getModel: PipelineModel = PipelineModel.load(MODEL_FILE_NAME)
+  }
+
   private val APP_NAME = "Classificator"
   private val MASTER = "local"
 
@@ -44,7 +48,7 @@ object Classificator {
     val svcModel = new LinearSVC()
       .setFeaturesCol(IDF_COLUMN)
       .setLabelCol(LABEL_COLUMN)
-      .setRegParam(0.01)
+      .setRegParam(0.005)
       .setMaxIter(300)
 
     val pipeline = new Pipeline()
@@ -77,10 +81,6 @@ object Classificator {
 
     // Save the fitted pipeline
     model.write.overwrite().save(MODEL_FILE_NAME)
-    // Load the model
-    val sameModel = PipelineModel.load(MODEL_FILE_NAME)
-
-    testModel(sameModel, test)
   }
 
   private def testModel(model: PipelineModel, testData: Dataset[Row]): Unit = {
