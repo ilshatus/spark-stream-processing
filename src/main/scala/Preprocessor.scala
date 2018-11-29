@@ -1,18 +1,20 @@
-import scala.io.Source
+import org.apache.spark.SparkContext
 
+import scala.io.Source
 import scala.math.min
 
 class Preprocessor(path: String) {
-  val defaultPath = "hdfs:///user/glasgow//dictionary.txt"
+  val defaultPath = "hdfs://10.90.138.32:9000/user/glasgow/dictionary.txt"
   var dictionary: scala.collection.mutable.HashMap[String, Boolean] = _
 
   def this() {
-    this("hdfs:///user/glasgow//dictionary.txt")
+
+    this("hdfs:///user/glasgow/dictionary.txt")
     this.dictionary = scala.collection.mutable.HashMap[String, Boolean]()
-    Source
-      .fromFile(path)
-      .getLines
-      .foreach(x => this.dictionary.put(x, true))
+    val sc = SparkContext.getOrCreate()
+    sc.textFile("hdfs:///user/glasgow/dictionary.txt").
+      foreach(x => this.dictionary.put(x, true))
+
   }
 
   //https://gist.github.com/tixxit/1246894/e79fa9fbeda695b9e8a6a5d858b61ec42c7a367d
@@ -48,12 +50,3 @@ class Preprocessor(path: String) {
   }
 }
 
-object Preprocessor {
-  private var _instance: Preprocessor = _
-
-  def instance(): Preprocessor = {
-    if (_instance == null)
-      _instance = new Preprocessor()
-    _instance
-  }
-}

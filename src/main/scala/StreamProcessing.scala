@@ -8,7 +8,10 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 object StreamProcessing {
   def main(args: Array[String]) {
     val durationSeconds = 10
-    val conf = new SparkConf().setAppName("RSS Spark Application").setIfMissing("spark.master", "local[*]")
+
+    val conf = new SparkConf().setAppName("RSS Spark Application").
+      setMaster("local[2]").
+      set("spark.executor.memory","1g");
     val sc = new SparkContext(conf)
     val ssc = new StreamingContext(sc, Seconds(durationSeconds))
     sc.setLogLevel("ERROR")
@@ -21,7 +24,8 @@ object StreamProcessing {
     stream.foreachRDD(rdd=>{
       val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
       import spark.sqlContext.implicits._
-      rdd.toDS().foreach(entry=>{
+      rdd.toDS().collect().foreach(entry=>{
+
       val description = entry
         .description
         .value
@@ -29,7 +33,7 @@ object StreamProcessing {
         .replaceAll("(<[^>]*>)", "")
         .split("(([ \n\t\r\'\"!?@#$%^&*()_\\-+={}\\[\\]|<>;:,./`~\\\\])|(\\n)|(\\r)|(((www\\.)|(https?:\\/\\/))[^ ]+))+")
         .filter(value => value.matches("[a-z]+"))
-        .map(value => Preprocessor.instance().process(value))
+        .map(value => (new Preprocessor()).process(value))
         .mkString(" ")
       println(Tweet(entry.links.head.href, description))}
       )
