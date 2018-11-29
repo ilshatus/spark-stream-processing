@@ -3,7 +3,7 @@ import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.linalg.DenseVector
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 
@@ -96,8 +96,11 @@ object Classifier {
     print(s"Accuracy: $accuracy")
   }
 
-  def predict(sample: String, spark: SparkSession, sc: SparkContext): Double = {
+  def predict(sample: String): Double = {
     // without this 'toDF' does not work
+    val sc = SparkContext.getOrCreate()
+    val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
+
     import spark.implicits._
 
     val df = sc.parallelize(Seq(sample)).toDF("text")
