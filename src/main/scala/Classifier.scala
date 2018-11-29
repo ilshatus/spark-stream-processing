@@ -1,7 +1,8 @@
 import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.ml.classification.{LinearSVC, LogisticRegression}
+import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
@@ -21,7 +22,7 @@ object Classifier {
   private val IDF_COLUMN = "idf"
   private val WORDS_COLUMN = "words"
 
-  private val MODEL_FILE_NAME = "/tmp/tweets-classification-model"
+  private val MODEL_FILE_NAME = "tmp/tweets-classification-model"
 
 
   def main(args: Array[String]): Unit = {
@@ -45,7 +46,7 @@ object Classifier {
       .setInputCol(TF_COLUMN)
       .setOutputCol(IDF_COLUMN)
 
-    val svcModel = new LinearSVC()
+    val svcModel = new LogisticRegression()
       .setFeaturesCol(IDF_COLUMN)
       .setLabelCol(LABEL_COLUMN)
       .setRegParam(0.005)
@@ -100,7 +101,7 @@ object Classifier {
     import spark.implicits._
 
     val df = sc.parallelize(Seq(sample)).toDF("text")
-    model.transform(df).select("prediction").collect().apply(0).get(0).asInstanceOf[Double]
+    model.transform(df).select("probability").collect().apply(0).get(0).asInstanceOf[DenseVector].apply(1)
   }
 
 }

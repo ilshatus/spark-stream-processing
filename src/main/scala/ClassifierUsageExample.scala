@@ -15,6 +15,5 @@ object ClassifierUsageExample {
       .getOrCreate()
 
     print(Classifier.predict("Some lovely text from twitter", spark, sc))
-
   }
 }
