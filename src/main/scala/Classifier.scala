@@ -2,19 +2,16 @@ import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.ml.classification.LogisticRegression
-import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 
 object Classifier {
 
-  lazy val model: PipelineModel = PipelineModel.load(MODEL_FILE_NAME)
-
   private val APP_NAME = "Classificator"
-  private val MASTER = "local"
+  private val MASTER = "local[*]"
 
-  private val INPUT_FILE_PATH = "preprocessed_train.csv"
+  private val INPUT_FILE_PATH = "hdfs:///user/glasgow/preprocessed_train.csv"
   private val LABEL_COLUMN = "label"
   private val TWEET_TEXT_COLUMN = "text"
 
@@ -22,8 +19,7 @@ object Classifier {
   private val IDF_COLUMN = "idf"
   private val WORDS_COLUMN = "words"
 
-  private val MODEL_FILE_NAME = "tmp/tweets-classification-model"
-
+  private val MODEL_DIRECTORY = "hdfs:///user/glasgow/tmp/tweets-classification-model"
 
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName(APP_NAME).setMaster(MASTER)
@@ -81,7 +77,7 @@ object Classifier {
     testModel(model, test)
 
     // Save the fitted pipeline
-    model.write.overwrite().save(MODEL_FILE_NAME)
+    model.write.overwrite().save(MODEL_DIRECTORY)
   }
 
   private def testModel(model: PipelineModel, testData: Dataset[Row]): Unit = {
@@ -94,17 +90,6 @@ object Classifier {
 
     var accuracy = 1.0 * correctCount / testData.count()
     print(s"Accuracy: $accuracy")
-  }
-
-  def predict(sample: String): Double = {
-    // without this 'toDF' does not work
-    val sc = SparkContext.getOrCreate()
-    val spark = SparkSession.builder().appName(sc.appName).getOrCreate()
-
-    import spark.implicits._
-
-    val df = sc.parallelize(Seq(sample)).toDF("text")
-    model.transform(df).select("probability").collect().apply(0).get(0).asInstanceOf[DenseVector].apply(1)
   }
 
 }
